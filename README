@@ -1,0 +1,110 @@
+NAME
+    Lingua::JA::TermExtractor - Term Extractor
+
+SYNOPSIS
+      use Lingua::JA::TermExtractor;
+      use utf8;
+      use feature qw/say/;
+      use Data::Printer;
+
+      my $extractor = Lingua::JA::TermExtractor->new(
+          api               => 'YahooPremium',
+          appid             => $appid,
+          fetch_df          => 1,
+          Furl_HTTP         => { timeout => 3 },
+          driver            => 'TokyoTyrant',
+          df_file           => 'localhost:1978',
+          pos1_filter       => [qw/非自立 代名詞 数 ナイ形容詞語幹 副詞可能 サ変接続/],
+          term_length_min   => 2,
+          tf_min            => 2,
+          df_min            => 1_0000,
+          df_max            => 500_0000,
+          ng_word           => [qw/編集 本人 自身 自分 たち さん/],
+          fetch_unk_word_df => 0,
+          concatenation_max => 100,
+      );
+
+      p $extractor->extract($document)->dump;
+      p $extractor->extract(\@documents)->dump;
+
+      for my $result (@{ $extractor->extract(\@documents)->list(50) })
+      {
+          my ($word, $score) = each %{$result};
+
+          say "$word: $score";
+      }
+
+DESCRIPTION
+    Lingua::JA::TermExtractor is a term extractor. This extracts terms from
+    a document or documents.
+
+  new( %config || \%config )
+    Creates a new Lingua::JA::TermExtractor instance.
+
+    The following configuration is used if you don't set %config.
+
+      KEY                 DEFAULT VALUE
+      -----------         ---------------
+      k1                  2.0
+      b                   0.75
+
+      pos1_filter         [qw/非自立 代名詞 数 ナイ形容詞語幹 副詞可能 接尾/]
+      pos2_filter         []
+      pos3_filter         []
+      ng_word             []
+      term_length_min     2
+      term_length_max     30
+      concatenation_max   30
+      tf_min              1
+      df_min              0
+      df_max              250_0000_0000
+      fetch_unk_word_df   0
+
+      idf_type            1
+      api                 'Yahoo'
+      appid               undef
+      driver              'Storable'
+      df_file             undef
+      fetch_df            1
+      expires_in          365
+      documents           250_0000_0000
+      Furl_HTTP           undef
+
+    k1 => $value
+        The weight of term frequency(TF).
+
+    b => $value
+        The weight of document length normalization.
+
+    pos(1|2|3)_filter, ng_word, term_length_(min|max), concatenation_max,
+    tf_min, df_(min|max), fetch_unk_word_df
+        See Lingua::JA::TFWebIDF.
+
+    idf_type, api, appid, driver, df_file, fetch_df, expires_in, documents,
+    Furl_HTTP
+        See Lingua::JA::WebIDF.
+
+  extract( $document || \@documents )
+    Extracts terms from $document or \@documents. Word segmentation and POS
+    tagging is done with MeCab.
+
+  tfidf, tf
+    See Lingua::JA::TFWebIDF.
+
+  idf, df, purge, db_open, db_close
+    See Lingua::JA::WebIDF.
+
+AUTHOR
+    pawa <pawapawa@cpan.org>
+
+SEE ALSO
+    Lingua::JA::WebIDF.
+
+    Lingua::JA::WebIDF::Driver::TokyoTyrant.
+
+    Lingua::JA::TFWebIDF.
+
+LICENSE
+    This library is free software; you can redistribute it and/or modify it
+    under the same terms as Perl itself.
+
