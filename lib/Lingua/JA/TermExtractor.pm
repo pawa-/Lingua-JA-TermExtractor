@@ -214,7 +214,7 @@ The following configuration is used if you don't set %config.
   fetch_unk_word_df   0
   db_auto             1
 
-  idf_type            1
+  idf_type            3
   api                 'Yahoo'
   appid               undef
   driver              'Storable'
