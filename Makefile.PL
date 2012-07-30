@@ -4,11 +4,12 @@ name     'Lingua-JA-TermExtractor';
 all_from 'lib/Lingua/JA/TermExtractor.pm';
 
 requires 'Carp';
-requires 'Lingua::JA::TFWebIDF' => 0.34;
+requires 'Lingua::JA::TFWebIDF' => 0.36;
 
 test_requires 'Test::More' => 0.88; # done_testing
 test_requires 'Test::Fatal';
 test_requires 'Test::Warn' => 0.20;
+test_requires 'Test::Requires';
 
 tests 't/*.t';
 author_tests 'xt';

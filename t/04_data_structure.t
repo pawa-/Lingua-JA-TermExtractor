@@ -19,26 +19,31 @@ my %config = (
     term_length_min   => 1,
     term_length_max   => 30,
     df_min            => 0,
-    concatenation_max => 0,
+    concat_max        => 0,
 );
 
 my $texts = texts();
 
 my $extractor = Lingua::JA::TermExtractor->new(\%config);
+ds_check( $extractor->tfidf('テスト')->dump, 'SCALAR', 'TFIDF' );
 ds_check( $extractor->extract('テスト')->dump, 'SCALAR' );
-ds_check( $extractor->extract($texts)->dump, '' );
+ds_check( $extractor->extract($texts)->dump );
 
-$config{concatenation_max} = 100;
+$config{concat_max} = 100;
 $extractor = Lingua::JA::TermExtractor->new(\%config);
+ds_check_concat( $extractor->tfidf('テスト')->dump, 'SCALAR', 'TFIDF' );
 ds_check_concat( $extractor->extract('テスト')->dump, 'SCALAR' );
-ds_check_concat( $extractor->extract($texts)->dump, '' );
+ds_check_concat( $extractor->extract($texts)->dump );
 
 done_testing;
 
 
 sub ds_check
 {
-    my ($data, $type) = @_;
+    my ($data, $type, $algorithm) = @_;
+
+    $type      = 'ARRAY' unless defined $type;
+    $algorithm = 'BM25'  unless defined $algorithm;
 
     for my $word (keys %{$data})
     {
@@ -48,13 +53,16 @@ sub ds_check
         like($data->{$word}{unknown}, qr/^[01]$/,      'unknown');
         like($data->{$word}{tf},      qr/^[0-9]+$/,    'tf');
         like($data->{$word}{tfidf},   qr/^[\.0-9]+$/,  'tfidf') if $type eq 'SCALAR';
-        like($data->{$word}{bm25},    qr/^[\.0-9]+$/,  'bm25')  if $type ne 'SCALAR';
+        like($data->{$word}{bm25},    qr/^[\.0-9]+$/,  'bm25')  if $type ne 'SCALAR' && $algorithm ne 'TFIDF';
     }
 }
 
 sub ds_check_concat
 {
-    my ($data, $type) = @_;
+    my ($data, $type, $algorithm) = @_;
+
+    $type      = 'ARRAY' unless defined $type;
+    $algorithm = 'BM25'  unless defined $algorithm;
 
     for my $word (keys %{$data})
     {
@@ -64,7 +72,7 @@ sub ds_check_concat
         is(ref $data->{$word}{unknown}, 'ARRAY',    'unknown');
         like($data->{$word}{tf},    qr/^[0-9]+$/,   'tf');
         like($data->{$word}{tfidf}, qr/^[\.0-9]+$/, 'tfidf') if $type eq 'SCALAR';
-        like($data->{$word}{bm25},  qr/^[\.0-9]+$/, 'bm25')  if $type ne 'SCALAR';
+        like($data->{$word}{bm25},  qr/^[\.0-9]+$/, 'bm25')  if $type ne 'SCALAR' && $algorithm ne 'TFIDF';
     }
 }
 

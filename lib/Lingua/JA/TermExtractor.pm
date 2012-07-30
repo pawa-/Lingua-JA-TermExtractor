@@ -17,14 +17,23 @@ sub new
     my %args  = (ref $_[0] eq 'HASH' ? %{$_[0]} : @_);
 
     $args{idf_type} = 3 unless defined $args{idf_type};
+    $args{db_auto}  = 1 unless defined $args{db_auto};
 
     my %options;
     $options{k1} = defined $args{k1} ? delete $args{k1} : 2.0;
     $options{b}  = defined $args{b}  ? delete $args{b}  : 0.75;
 
+    if ($args{db_auto})
+    {
+        $options{db_auto_child} = 1;
+        $args{db_auto}          = 0;
+    }
+    else { $options{db_auto_child} = 0; }
+
     my $self = $class->SUPER::new(\%args);
-    $self->{k1} = $options{k1};
-    $self->{b}  = $options{b};
+    $self->{k1}            = $options{k1};
+    $self->{b}             = $options{b};
+    $self->{db_auto_child} = $options{db_auto_child};
 
     return $self;
 }
@@ -34,6 +43,9 @@ sub extract
     my ($self, $arg) = @_;
 
     my ($k1, $b) = ($self->{k1}, $self->{b});
+    my $db_auto  = $self->{db_auto_child};
+    my $fetch_df = $self->{fetch_df};
+    my $fetch_unk_word_df = $self->{fetch_unk_word_df};
 
     my $data = {};
 
@@ -52,9 +64,16 @@ sub extract
 
         my $dl_avg = $dl_sum / scalar @{$arg};
 
+
+        if ($db_auto)
+        {
+            if ($fetch_df || $fetch_unk_word_df) { $self->db_open('write'); }
+            else                                 { $self->db_open('read');  }
+        }
+
         for my $text (@{$arg})
         {
-            my $tfidf = $self->tfidf($text)->dump;
+            my $tfidf = $self->SUPER::tfidf($text)->dump;
             my $dl    = length $text;
 
             for my $word (keys %{$tfidf})
@@ -80,7 +99,14 @@ sub extract
     }
     else
     {
-        $data = $self->tfidf($arg)->dump;
+
+        if ($db_auto)
+        {
+            if ($fetch_df || $fetch_unk_word_df) { $self->db_open('write'); }
+            else                                 { $self->db_open('read');  }
+        }
+
+        $data = $self->SUPER::tfidf($arg)->dump;
 
         #for my $word (keys %{$data})
         #{
@@ -97,6 +123,15 @@ sub extract
         #}
     }
 
+    $self->db_close if $db_auto;
+
+    return Lingua::JA::TermExtractor::Result->new($data);
+}
+
+sub tfidf
+{
+    my ($self, $arg) = @_;
+    my $data = $self->SUPER::tfidf($arg, $self->{db_auto_child})->dump;
     return Lingua::JA::TermExtractor::Result->new($data);
 }
 
@@ -131,10 +166,10 @@ my ($appid, $document, @documents);
       term_length_min   => 2,
       tf_min            => 2,
       df_min            => 1_0000,
-      df_max            => 500_0000,
+      df_max            => 1000_0000,
       ng_word           => [qw/編集 本人 自身 自分 たち さん/],
       fetch_unk_word_df => 0,
-      concatenation_max => 100,
+      concat_max        => 100,
   );
 
   p $extractor->extract($document)->dump;
@@ -153,6 +188,8 @@ my ($appid, $document, @documents);
 Lingua::JA::TermExtractor is a term extractor.
 This extracts terms from a document or documents.
 
+=head1 METHODS
+
 =head2 new( %config || \%config )
 
 Creates a new Lingua::JA::TermExtractor instance.
@@ -170,11 +207,12 @@ The following configuration is used if you don't set %config.
   ng_word             []
   term_length_min     2
   term_length_max     30
-  concatenation_max   30
+  concat_max          30
   tf_min              1
   df_min              0
   df_max              250_0000_0000
   fetch_unk_word_df   0
+  db_auto             1
 
   idf_type            1
   api                 'Yahoo'
@@ -196,7 +234,7 @@ The weight of term frequency(TF).
 
 The weight of document length normalization.
 
-=item pos(1|2|3)_filter, ng_word, term_length_(min|max), concatenation_max, tf_min, df_(min|max), fetch_unk_word_df
+=item pos(1|2|3)_filter, ng_word, term_length_(min|max), concat_max, tf_min, df_(min|max), fetch_unk_word_df, db_auto
 
 See L<Lingua::JA::TFWebIDF>.
 
@@ -209,7 +247,7 @@ See L<Lingua::JA::WebIDF>.
 =head2 extract( $document || \@documents )
 
 Extracts terms from $document or \@documents.
-Word segmentation and POS tagging is done with MeCab.
+Word segmentation and POS tagging are done with MeCab.
 
 =head2 tfidf, tf
 
@@ -225,11 +263,11 @@ pawa E<lt>pawapawa@cpan.orgE<gt>
 
 =head1 SEE ALSO
 
-L<Lingua::JA::WebIDF>.
+L<Lingua::JA::WebIDF>
 
-L<Lingua::JA::WebIDF::Driver::TokyoTyrant>.
+L<Lingua::JA::WebIDF::Driver::TokyoTyrant>
 
-L<Lingua::JA::TFWebIDF>.
+L<Lingua::JA::TFWebIDF>
 
 =head1 LICENSE
 

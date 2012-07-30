@@ -18,10 +18,10 @@ SYNOPSIS
           term_length_min   => 2,
           tf_min            => 2,
           df_min            => 1_0000,
-          df_max            => 500_0000,
+          df_max            => 1000_0000,
           ng_word           => [qw/編集 本人 自身 自分 たち さん/],
           fetch_unk_word_df => 0,
-          concatenation_max => 100,
+          concat_max        => 100,
       );
 
       p $extractor->extract($document)->dump;
@@ -38,6 +38,7 @@ DESCRIPTION
     Lingua::JA::TermExtractor is a term extractor. This extracts terms from
     a document or documents.
 
+METHODS
   new( %config || \%config )
     Creates a new Lingua::JA::TermExtractor instance.
 
@@ -54,11 +55,12 @@ DESCRIPTION
       ng_word             []
       term_length_min     2
       term_length_max     30
-      concatenation_max   30
+      concat_max          30
       tf_min              1
       df_min              0
       df_max              250_0000_0000
       fetch_unk_word_df   0
+      db_auto             1
 
       idf_type            1
       api                 'Yahoo'
@@ -76,8 +78,8 @@ DESCRIPTION
     b => $value
         The weight of document length normalization.
 
-    pos(1|2|3)_filter, ng_word, term_length_(min|max), concatenation_max,
-    tf_min, df_(min|max), fetch_unk_word_df
+    pos(1|2|3)_filter, ng_word, term_length_(min|max), concat_max, tf_min,
+    df_(min|max), fetch_unk_word_df, db_auto
         See Lingua::JA::TFWebIDF.
 
     idf_type, api, appid, driver, df_file, fetch_df, expires_in, documents,
@@ -86,7 +88,7 @@ DESCRIPTION
 
   extract( $document || \@documents )
     Extracts terms from $document or \@documents. Word segmentation and POS
-    tagging is done with MeCab.
+    tagging are done with MeCab.
 
   tfidf, tf
     See Lingua::JA::TFWebIDF.
@@ -98,11 +100,11 @@ AUTHOR
     pawa <pawapawa@cpan.org>
 
 SEE ALSO
-    Lingua::JA::WebIDF.
+    Lingua::JA::WebIDF
 
-    Lingua::JA::WebIDF::Driver::TokyoTyrant.
+    Lingua::JA::WebIDF::Driver::TokyoTyrant
 
-    Lingua::JA::TFWebIDF.
+    Lingua::JA::TFWebIDF
 
 LICENSE
     This library is free software; you can redistribute it and/or modify it
