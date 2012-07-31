@@ -8,7 +8,7 @@ use Carp ();
 use parent 'Lingua::JA::TFWebIDF';
 use Lingua::JA::TermExtractor::Result;
 
-our $VERSION = '0.02';
+our $VERSION = '0.03';
 
 
 sub new

@@ -1,5 +1,9 @@
 Revision history for Perl extension Lingua::JA::TermExtractor
 
+0.03    Tue, 31 Jul 2012 09:54:45 +0900
+        - fixed documentation
+        - changed Lingua::JA::TFWebIDF dependency from 0.36 to 0.37
+
 0.02    Tue, 31 Jul 2012 01:09:49 +0900
         - added db_auto option
         - changed Lingua::JA::TFWebIDF dependency from 0.34 to 0.36
