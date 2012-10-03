@@ -9,7 +9,8 @@ binmode Test::More->builder->$_ => ':utf8'
 
 
 my %config = (
-    appid             => 'test',
+    driver            => 'Storable',
+    df_file           => './df/flagged_utf8.st',
     fetch_df          => 0,
     pos1_filter       => [],
     pos2_filter       => [],
@@ -22,17 +23,22 @@ my %config = (
     concat_max        => 0,
 );
 
+my $text  = 'テスト';
 my $texts = texts();
 
 my $extractor = Lingua::JA::TermExtractor->new(\%config);
-ds_check( $extractor->tfidf('テスト')->dump, 'SCALAR', 'TFIDF' );
-ds_check( $extractor->extract('テスト')->dump, 'SCALAR' );
+ds_check( $extractor->tfidf($text)->dump, 'SCALAR', 'TFIDF' );
+ds_check( $extractor->tfidf(\$text)->dump, 'SCALAR', 'TFIDF' );
+ds_check( $extractor->extract($text)->dump, 'SCALAR' );
+ds_check( $extractor->extract(\$text)->dump, 'SCALAR' );
 ds_check( $extractor->extract($texts)->dump );
 
 $config{concat_max} = 100;
 $extractor = Lingua::JA::TermExtractor->new(\%config);
-ds_check_concat( $extractor->tfidf('テスト')->dump, 'SCALAR', 'TFIDF' );
-ds_check_concat( $extractor->extract('テスト')->dump, 'SCALAR' );
+ds_check_concat( $extractor->tfidf($text)->dump, 'SCALAR', 'TFIDF' );
+ds_check_concat( $extractor->tfidf(\$text)->dump, 'SCALAR', 'TFIDF' );
+ds_check_concat( $extractor->extract($text)->dump, 'SCALAR' );
+ds_check_concat( $extractor->extract(\$text)->dump, 'SCALAR' );
 ds_check_concat( $extractor->extract($texts)->dump );
 
 done_testing;
@@ -47,13 +53,14 @@ sub ds_check
 
     for my $word (keys %{$data})
     {
-        like($data->{$word}{df},      qr/^[0-9]+$/,    'df');
-        like($data->{$word}{idf},     qr/^[\.0-9]+$/,  'idf');
-        like($data->{$word}{info},    qr/\*/,          'info');
-        like($data->{$word}{unknown}, qr/^[01]$/,      'unknown');
-        like($data->{$word}{tf},      qr/^[0-9]+$/,    'tf');
-        like($data->{$word}{tfidf},   qr/^[\.0-9]+$/,  'tfidf') if $type eq 'SCALAR';
-        like($data->{$word}{bm25},    qr/^[\.0-9]+$/,  'bm25')  if $type ne 'SCALAR' && $algorithm ne 'TFIDF';
+        like($data->{$word}{df},       qr/^[0-9]+$/,    'df');
+        like($data->{$word}{idf},      qr/^[\.0-9]+$/,  'idf');
+        like($data->{$word}{info},     qr/\*/,          'info');
+        like($data->{$word}{unknown},  qr/^[01]$/,      'unknown');
+        like($data->{$word}{tf},       qr/^[0-9]+$/,    'tf');
+        like($data->{$word}{tfidf},    qr/^[\.0-9]+$/,  'tfidf')     if $type eq 'SCALAR';
+        like($data->{$word}{bm25},     qr/^[\.0-9]+$/,  'bm25')      if $type ne 'SCALAR' && $algorithm ne 'TFIDF';
+        like($data->{$word}{local_df}, qr/^[0-9]+$/,    'local_df')  if $type ne 'SCALAR' && $algorithm ne 'TFIDF';
     }
 }
 
@@ -70,9 +77,12 @@ sub ds_check_concat
         like($data->{$word}{idf},   qr/^[\.0-9]+$/, 'idf');
         is(ref $data->{$word}{info},    'ARRAY',    'info');
         is(ref $data->{$word}{unknown}, 'ARRAY',    'unknown');
+        like("@{ $data->{$word}{info} }",    qr/^(.+,.+)+$/, 'content of info');
+        like("@{ $data->{$word}{unknown} }", qr/^[01 ]+$/,   'content of unknown');
         like($data->{$word}{tf},    qr/^[0-9]+$/,   'tf');
         like($data->{$word}{tfidf}, qr/^[\.0-9]+$/, 'tfidf') if $type eq 'SCALAR';
         like($data->{$word}{bm25},  qr/^[\.0-9]+$/, 'bm25')  if $type ne 'SCALAR' && $algorithm ne 'TFIDF';
+        like($data->{$word}{local_df}, qr/^[0-9]+$/,    'local_df') if $type ne 'SCALAR' && $algorithm ne 'TFIDF';
     }
 }
 

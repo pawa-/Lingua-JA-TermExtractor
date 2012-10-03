@@ -9,7 +9,8 @@ binmode Test::More->builder->$_ => ':utf8'
 
 
 my $extractor = Lingua::JA::TermExtractor->new(
-    appid    => 'test',
+    driver   => 'Storable',
+    df_file  => './df/flagged_utf8.st',
     fetch_df => 0,
 );
 

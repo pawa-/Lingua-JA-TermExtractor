@@ -45,7 +45,6 @@ sub extract
     my ($k1, $b) = ($self->{k1}, $self->{b});
     my $db_auto  = $self->{db_auto_child};
     my $fetch_df = $self->{fetch_df};
-    my $fetch_unk_word_df = $self->{fetch_unk_word_df};
 
     my $data = {};
 
@@ -62,29 +61,38 @@ sub extract
             return;
         }
 
-        my $dl_avg = $dl_sum / scalar @{$arg};
+        my $num_local_doc = scalar @{$arg};
+        my $dl_avg        = $dl_sum / $num_local_doc;
 
+        my @dl_and_tfidf;
 
         if ($db_auto)
         {
-            if ($fetch_df || $fetch_unk_word_df) { $self->db_open('write'); }
-            else                                 { $self->db_open('read');  }
+            if ($fetch_df) { $self->db_open('write'); }
+            else           { $self->db_open('read');  }
         }
 
         for my $text (@{$arg})
         {
-            my $tfidf = $self->SUPER::tfidf($text)->dump;
-            my $dl    = length $text;
+            push( @dl_and_tfidf, { dl => length $text, tfidf => $self->SUPER::tfidf(\$text)->dump } );
+        }
+
+        for my $dl_and_tfidf (@dl_and_tfidf)
+        {
+            my $tfidf = $dl_and_tfidf->{tfidf};
+            my $dl    = $dl_and_tfidf->{dl};
 
             for my $word (keys %{$tfidf})
             {
-                my ($tf, $idf, $df) = ($tfidf->{$word}{tf}, $tfidf->{$word}{idf}, $tfidf->{$word}{df});
+                my ($tf, $idf) = ($tfidf->{$word}{tf}, $tfidf->{$word}{idf});
 
-                $data->{$word}{tf}     += $tf;
-                $data->{$word}{idf}     = $idf;
-                $data->{$word}{df}      = $df;
-                $data->{$word}{info}    = $tfidf->{$word}{info}    unless exists $data->{$word}{info};
-                $data->{$word}{unknown} = $tfidf->{$word}{unknown} unless exists $data->{$word}{unknown};
+                $data->{$word}{tf}      += $tf;
+                $data->{$word}{idf}      = $idf;
+                $data->{$word}{df}       = $tfidf->{$word}{df};
+                #$data->{$word}{tfidf}   += $tfidf->{$word}{tfidf};
+                $data->{$word}{local_df} = _count_local_df(\@dl_and_tfidf, $word) unless exists $data->{$word}{local_df};
+                $data->{$word}{info}     = $tfidf->{$word}{info}    unless exists $data->{$word}{info};
+                $data->{$word}{unknown}  = $tfidf->{$word}{unknown} unless exists $data->{$word}{unknown};
 
                 $data->{$word}{bm25}
                     +=
@@ -92,35 +100,25 @@ sub extract
                           ( $tf * ($k1 + 1) )
                         / ( $tf + $k1 * (1 - $b + $b * ($dl / $dl_avg)) )
                     )
-                    * $idf
+                    *
+                        (
+                            $idf
+                          + log( $num_local_doc / ($num_local_doc - $data->{$word}{local_df} + 1) )
+                        )
                     ;
             }
         }
     }
     else
     {
-
         if ($db_auto)
         {
-            if ($fetch_df || $fetch_unk_word_df) { $self->db_open('write'); }
-            else                                 { $self->db_open('read');  }
+            if ($fetch_df) { $self->db_open('write'); }
+            else           { $self->db_open('read');  }
         }
 
-        $data = $self->SUPER::tfidf($arg)->dump;
-
-        #for my $word (keys %{$data})
-        #{
-        #    my ($tf, $idf) = ($data->{$word}{tf}, $data->{$word}{idf});
-        #
-        #    $data->{$word}{bm25}
-        #        =
-        #        (
-        #              ( $tf * ($k1 + 1) )
-        #            / ($tf + $k1)
-        #        )
-        #        * $idf
-        #        ;
-        #}
+        if (ref $arg eq 'SCALAR') { $data = $self->SUPER::tfidf($arg)->dump;  }
+        else                      { $data = $self->SUPER::tfidf(\$arg)->dump; }
     }
 
     $self->db_close if $db_auto;
@@ -135,7 +133,21 @@ sub tfidf
     return Lingua::JA::TermExtractor::Result->new($data);
 }
 
-'nyan!';
+sub _count_local_df
+{
+    my ($dl_and_tfidf_ref, $word) = @_;
+
+    my $cnt = 0;
+
+    for my $df_and_tfidf (@{$dl_and_tfidf_ref})
+    {
+        $cnt++ if exists $df_and_tfidf->{tfidf}{$word};
+    }
+
+    return $cnt;
+}
+
+1;
 
 __END__
 
@@ -146,7 +158,7 @@ __END__
 Lingua::JA::TermExtractor - Term Extractor
 
 =for test_synopsis
-my ($appid, $document, @documents);
+my ($document, @documents);
 
 =head1 SYNOPSIS
 
@@ -156,20 +168,9 @@ my ($appid, $document, @documents);
   use Data::Printer;
 
   my $extractor = Lingua::JA::TermExtractor->new(
-      api               => 'YahooPremium',
-      appid             => $appid,
-      fetch_df          => 1,
-      Furl_HTTP         => { timeout => 3 },
-      driver            => 'TokyoTyrant',
-      df_file           => 'localhost:1978',
+      df_file           => './df.tch', # Please download from http://misc.pawafuru.com/webidf/.
       pos1_filter       => [qw/非自立 代名詞 数 ナイ形容詞語幹 副詞可能 サ変接続/],
-      term_length_min   => 2,
-      tf_min            => 2,
-      df_min            => 1_0000,
-      df_max            => 1000_0000,
       ng_word           => [qw/編集 本人 自身 自分 たち さん/],
-      fetch_unk_word_df => 0,
-      concat_max        => 100,
   );
 
   p $extractor->extract($document)->dump;
@@ -186,7 +187,9 @@ my ($appid, $document, @documents);
 =head1 DESCRIPTION
 
 Lingua::JA::TermExtractor is a term extractor.
-This extracts terms from a document or documents.
+This extracts terms from one or more documents
+and sorts them based on their TF*WebIDF or BM25
+scores.
 
 =head1 METHODS
 
@@ -201,7 +204,7 @@ The following configuration is used if you don't set %config.
   k1                  2.0
   b                   0.75
 
-  pos1_filter         [qw/非自立 代名詞 数 ナイ形容詞語幹 副詞可能 接尾/]
+  pos1_filter         [qw/非自立 代名詞 数 ナイ形容詞語幹 副詞可能/]
   pos2_filter         []
   pos3_filter         []
   ng_word             []
@@ -213,41 +216,49 @@ The following configuration is used if you don't set %config.
   df_max              250_0000_0000
   fetch_unk_word_df   0
   db_auto             1
+  guess_df            1
 
   idf_type            3
-  api                 'Yahoo'
+  api                 'YahooPremium'
   appid               undef
-  driver              'Storable'
-  df_file             undef
-  fetch_df            1
+  driver              'TokyoCabinet'
+  df_file             './df.tch'
+  fetch_df            0
   expires_in          365
   documents           250_0000_0000
   Furl_HTTP           undef
+  verbose             0
 
 =over 4
 
-=item k1 => $value
+=item k1 => $weight
 
 The weight of term frequency(TF).
 
-=item b => $value
+=item b => $weight
 
 The weight of document length normalization.
 
-=item pos(1|2|3)_filter, ng_word, term_length_(min|max), concat_max, tf_min, df_(min|max), fetch_unk_word_df, db_auto
+=item pos(1|2|3)_filter, ng_word, term_length_(min|max), concat_max, tf_min, df_(min|max), fetch_unk_word_df, db_auto, guess_df
 
 See L<Lingua::JA::TFWebIDF>.
 
-=item idf_type, api, appid, driver, df_file, fetch_df, expires_in, documents, Furl_HTTP
+=item idf_type, api, appid, driver, df_file, fetch_df, expires_in, documents, Furl_HTTP, verbose
 
 See L<Lingua::JA::WebIDF>.
 
 =back
 
-=head2 extract( $document || \@documents )
+=head2 extract( $document || \$document || \@documents )
 
-Extracts terms from $document or \@documents.
-Word segmentation and POS tagging are done with MeCab.
+Extracts terms from $document, \$document or \@documents
+and sorts them based on their TF*WebIDF or BM25
+scores.
+
+If $document or \$document, TF*WebIDF is used.
+If \@documents, BM25 is used.
+
+Word segmentation and POS tagging are done via MeCab.
 
 =head2 tfidf, tf
 
@@ -263,11 +274,11 @@ pawa E<lt>pawapawa@cpan.orgE<gt>
 
 =head1 SEE ALSO
 
+L<Lingua::JA::TFWebIDF>
+
 L<Lingua::JA::WebIDF>
 
 L<Lingua::JA::WebIDF::Driver::TokyoTyrant>
-
-L<Lingua::JA::TFWebIDF>
 
 =head1 LICENSE
 

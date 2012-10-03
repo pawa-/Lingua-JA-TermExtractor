@@ -10,13 +10,12 @@ binmode Test::More->builder->$_ => ':utf8'
     for qw/output failure_output todo_output/;
 
 
-unlink './test.tch';
+my $df_file = './df/utf8.tch';
 
 my %config = (
-    appid           => 'test',
-    fetch_df        => 0,
     driver          => 'TokyoCabinet',
-    df_file         => './test.tch',
+    df_file         => $df_file,
+    fetch_df        => 0,
     pos1_filter     => [],
     pos2_filter     => [],
     pos3_filter     => [],
@@ -51,6 +50,9 @@ $extractor = Lingua::JA::TermExtractor->new(\%config);
 $exception = exception{ $extractor->tfidf('テスト'); };
 is($exception, undef, 'tfidf auto db open');
 
-unlink './test.tch';
+$config{'db_auto'} = 1;
+$extractor = Lingua::JA::TermExtractor->new(\%config);
+$exception = exception{ $extractor->extract('テスト'); };
+is($exception, undef, 'extract auto db open');
 
 done_testing;

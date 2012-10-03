@@ -8,20 +8,9 @@ SYNOPSIS
       use Data::Printer;
 
       my $extractor = Lingua::JA::TermExtractor->new(
-          api               => 'YahooPremium',
-          appid             => $appid,
-          fetch_df          => 1,
-          Furl_HTTP         => { timeout => 3 },
-          driver            => 'TokyoTyrant',
-          df_file           => 'localhost:1978',
+          df_file           => './df.tch', # Please download from http://misc.pawafuru.com/webidf/.
           pos1_filter       => [qw/非自立 代名詞 数 ナイ形容詞語幹 副詞可能 サ変接続/],
-          term_length_min   => 2,
-          tf_min            => 2,
-          df_min            => 1_0000,
-          df_max            => 1000_0000,
           ng_word           => [qw/編集 本人 自身 自分 たち さん/],
-          fetch_unk_word_df => 0,
-          concat_max        => 100,
       );
 
       p $extractor->extract($document)->dump;
@@ -36,7 +25,8 @@ SYNOPSIS
 
 DESCRIPTION
     Lingua::JA::TermExtractor is a term extractor. This extracts terms from
-    a document or documents.
+    one or more documents and sorts them based on their TF*WebIDF or BM25
+    scores.
 
 METHODS
   new( %config || \%config )
@@ -49,7 +39,7 @@ METHODS
       k1                  2.0
       b                   0.75
 
-      pos1_filter         [qw/非自立 代名詞 数 ナイ形容詞語幹 副詞可能 接尾/]
+      pos1_filter         [qw/非自立 代名詞 数 ナイ形容詞語幹 副詞可能/]
       pos2_filter         []
       pos3_filter         []
       ng_word             []
@@ -61,34 +51,41 @@ METHODS
       df_max              250_0000_0000
       fetch_unk_word_df   0
       db_auto             1
+      guess_df            1
 
       idf_type            3
-      api                 'Yahoo'
+      api                 'YahooPremium'
       appid               undef
-      driver              'Storable'
-      df_file             undef
-      fetch_df            1
+      driver              'TokyoCabinet'
+      df_file             './df.tch'
+      fetch_df            0
       expires_in          365
       documents           250_0000_0000
       Furl_HTTP           undef
+      verbose             0
 
-    k1 => $value
+    k1 => $weight
         The weight of term frequency(TF).
 
-    b => $value
+    b => $weight
         The weight of document length normalization.
 
     pos(1|2|3)_filter, ng_word, term_length_(min|max), concat_max, tf_min,
-    df_(min|max), fetch_unk_word_df, db_auto
+    df_(min|max), fetch_unk_word_df, db_auto, guess_df
         See Lingua::JA::TFWebIDF.
 
     idf_type, api, appid, driver, df_file, fetch_df, expires_in, documents,
-    Furl_HTTP
+    Furl_HTTP, verbose
         See Lingua::JA::WebIDF.
 
-  extract( $document || \@documents )
-    Extracts terms from $document or \@documents. Word segmentation and POS
-    tagging are done with MeCab.
+  extract( $document || \$document || \@documents )
+    Extracts terms from $document, \$document or \@documents and sorts them
+    based on their TF*WebIDF or BM25 scores.
+
+    If $document or \$document, TF*WebIDF is used. If \@documents, BM25 is
+    used.
+
+    Word segmentation and POS tagging are done via MeCab.
 
   tfidf, tf
     See Lingua::JA::TFWebIDF.
@@ -100,11 +97,11 @@ AUTHOR
     pawa <pawapawa@cpan.org>
 
 SEE ALSO
+    Lingua::JA::TFWebIDF
+
     Lingua::JA::WebIDF
 
     Lingua::JA::WebIDF::Driver::TokyoTyrant
-
-    Lingua::JA::TFWebIDF
 
 LICENSE
     This library is free software; you can redistribute it and/or modify it
