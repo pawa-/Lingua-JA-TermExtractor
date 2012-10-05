@@ -27,32 +27,34 @@ my %config = (
     db_auto         => 0,
 );
 
+my $text = "テスト" x 9;
+
 my $extractor = Lingua::JA::TermExtractor->new(\%config);
-my $exception = exception{ $extractor->extract('テスト'); };
+my $exception = exception{ $extractor->extract($text); };
 like($exception, qr/not opened/, 'not opened');
 
 $extractor->db_open('read');
-$exception = exception{ $extractor->extract('テスト'); };
+$exception = exception{ $extractor->extract($text); };
 is($exception, undef, 'opened');
 $extractor->db_close;
 
 $extractor = Lingua::JA::TermExtractor->new(\%config);
-$exception = exception{ $extractor->tfidf('テスト'); };
+$exception = exception{ $extractor->tfidf($text); };
 like($exception, qr/not opened/, 'not opened (tfidf)');
 
 $extractor->db_open('read');
-$exception = exception{ $extractor->tfidf('テスト'); };
+$exception = exception{ $extractor->tfidf($text); };
 is($exception, undef, 'opened (tfidf)');
 $extractor->db_close;
 
 $config{'db_auto'} = 1;
 $extractor = Lingua::JA::TermExtractor->new(\%config);
-$exception = exception{ $extractor->tfidf('テスト'); };
+$exception = exception{ $extractor->tfidf($text); };
 is($exception, undef, 'tfidf auto db open');
 
 $config{'db_auto'} = 1;
 $extractor = Lingua::JA::TermExtractor->new(\%config);
-$exception = exception{ $extractor->extract('テスト'); };
+$exception = exception{ $extractor->extract($text); };
 is($exception, undef, 'extract auto db open');
 
 done_testing;

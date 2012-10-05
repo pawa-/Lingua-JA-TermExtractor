@@ -9,7 +9,7 @@ SYNOPSIS
 
       my $extractor = Lingua::JA::TermExtractor->new(
           df_file           => './df.tch', # Please download from http://misc.pawafuru.com/webidf/.
-          pos1_filter       => [qw/非自立 代名詞 数 ナイ形容詞語幹 副詞可能 サ変接続/],
+          pos1_filter       => [qw/非自立 代名詞 ナイ形容詞語幹 副詞可能 サ変接続/],
           ng_word           => [qw/編集 本人 自身 自分 たち さん/],
       );
 
@@ -39,7 +39,7 @@ METHODS
       k1                  2.0
       b                   0.75
 
-      pos1_filter         [qw/非自立 代名詞 数 ナイ形容詞語幹 副詞可能/]
+      pos1_filter         [qw/非自立 代名詞 ナイ形容詞語幹 副詞可能/]
       pos2_filter         []
       pos3_filter         []
       ng_word             []
@@ -78,12 +78,11 @@ METHODS
     Furl_HTTP, verbose
         See Lingua::JA::WebIDF.
 
-  extract( $document || \$document || \@documents )
-    Extracts terms from $document, \$document or \@documents and sorts them
-    based on their TF*WebIDF or BM25 scores.
+  extract( $document || \@documents )
+    Extracts terms from $document or \@documents and sorts them based on
+    their TF*WebIDF or BM25 scores.
 
-    If $document or \$document, TF*WebIDF is used. If \@documents, BM25 is
-    used.
+    If $document, TF*WebIDF is used. If \@documents, BM25 is used.
 
     Word segmentation and POS tagging are done via MeCab.
 

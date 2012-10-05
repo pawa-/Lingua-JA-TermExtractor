@@ -8,7 +8,7 @@ use Carp ();
 use parent 'Lingua::JA::TFWebIDF';
 use Lingua::JA::TermExtractor::Result;
 
-our $VERSION = '0.03';
+our $VERSION = '0.10';
 
 
 sub new
@@ -48,10 +48,15 @@ sub extract
 
     my $data = {};
 
+    if ($db_auto)
+    {
+        if ($fetch_df) { $self->db_open('write'); }
+        else           { $self->db_open('read');  }
+    }
+
     if (ref $arg eq 'ARRAY')
     {
         # dl: document length
-
         my $dl_sum = 0;
         $dl_sum += length $_ for @{$arg};
 
@@ -65,12 +70,6 @@ sub extract
         my $dl_avg        = $dl_sum / $num_local_doc;
 
         my @dl_and_tfidf;
-
-        if ($db_auto)
-        {
-            if ($fetch_df) { $self->db_open('write'); }
-            else           { $self->db_open('read');  }
-        }
 
         for my $text (@{$arg})
         {
@@ -111,12 +110,6 @@ sub extract
     }
     else
     {
-        if ($db_auto)
-        {
-            if ($fetch_df) { $self->db_open('write'); }
-            else           { $self->db_open('read');  }
-        }
-
         if (ref $arg eq 'SCALAR') { $data = $self->SUPER::tfidf($arg)->dump;  }
         else                      { $data = $self->SUPER::tfidf(\$arg)->dump; }
     }
@@ -169,7 +162,7 @@ my ($document, @documents);
 
   my $extractor = Lingua::JA::TermExtractor->new(
       df_file           => './df.tch', # Please download from http://misc.pawafuru.com/webidf/.
-      pos1_filter       => [qw/非自立 代名詞 数 ナイ形容詞語幹 副詞可能 サ変接続/],
+      pos1_filter       => [qw/非自立 代名詞 ナイ形容詞語幹 副詞可能 サ変接続/],
       ng_word           => [qw/編集 本人 自身 自分 たち さん/],
   );
 
@@ -204,7 +197,7 @@ The following configuration is used if you don't set %config.
   k1                  2.0
   b                   0.75
 
-  pos1_filter         [qw/非自立 代名詞 数 ナイ形容詞語幹 副詞可能/]
+  pos1_filter         [qw/非自立 代名詞 ナイ形容詞語幹 副詞可能/]
   pos2_filter         []
   pos3_filter         []
   ng_word             []
@@ -249,13 +242,13 @@ See L<Lingua::JA::WebIDF>.
 
 =back
 
-=head2 extract( $document || \$document || \@documents )
+=head2 extract( $document || \@documents )
 
-Extracts terms from $document, \$document or \@documents
+Extracts terms from $document or \@documents
 and sorts them based on their TF*WebIDF or BM25
 scores.
 
-If $document or \$document, TF*WebIDF is used.
+If $document, TF*WebIDF is used.
 If \@documents, BM25 is used.
 
 Word segmentation and POS tagging are done via MeCab.

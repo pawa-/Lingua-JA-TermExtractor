@@ -1,5 +1,11 @@
 Revision history for Perl extension Lingua::JA::TermExtractor
 
+0.10    Fri, 05 Oct 2012 16:11:06 +0900
+        - changed Lingua::JA::TFWebIDF dependency from 0.37 to 0.40
+        - changed calculation formula of BM25
+        - changed default options
+        - improved tests
+
 0.03    Tue, 31 Jul 2012 09:54:45 +0900
         - fixed documentation
         - changed Lingua::JA::TFWebIDF dependency from 0.36 to 0.37
