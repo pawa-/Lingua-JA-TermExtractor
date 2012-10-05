@@ -73,7 +73,7 @@ sub extract
 
         for my $text (@{$arg})
         {
-            push( @dl_and_tfidf, { dl => length $text, tfidf => $self->SUPER::tfidf(\$text)->dump } );
+            push( @dl_and_tfidf, { dl => length $text, tfidf => $self->SUPER::tfidf($text)->dump } );
         }
 
         for my $dl_and_tfidf (@dl_and_tfidf)
